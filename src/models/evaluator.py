@@ -39,15 +39,21 @@ SPLITS_FILE  = DATA_OUTPUTS / "test_indices.json"
 # ── Loaders ────────────────────────────────────────────────────────────────────
 
 def load_models() -> dict:
+    """Load only models whose .pkl files are present on disk."""
+    candidates = {
+        "Logistic Regression": MODEL_LOGISTIC,
+        "Random Forest":       MODEL_RF,
+        "XGBoost":             MODEL_XGB,
+    }
     return {
-        "Logistic Regression": joblib.load(MODEL_LOGISTIC),
-        "Random Forest":       joblib.load(MODEL_RF),
-        "XGBoost":             joblib.load(MODEL_XGB),
+        name: joblib.load(path)
+        for name, path in candidates.items()
+        if path.exists()
     }
 
 
 def load_thresholds() -> dict:
-    """Map display name → tuned threshold from model_results.json."""
+    """Return tuned thresholds only for models that are actually loaded."""
     key_map = {
         "Logistic Regression": "logistic",
         "Random Forest":       "random_forest",
@@ -55,7 +61,11 @@ def load_thresholds() -> dict:
     }
     with open(RESULTS_FILE) as f:
         raw = json.load(f)
-    return {display: raw[key]["threshold"] for display, key in key_map.items()}
+    return {
+        display: raw[key]["threshold"]
+        for display, key in key_map.items()
+        if key in raw
+    }
 
 
 def load_test_set() -> tuple[pd.DataFrame, pd.Series]:

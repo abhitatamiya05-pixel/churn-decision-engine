@@ -24,9 +24,10 @@ _COLORS = {"Random Forest": "#ff7f0e", "XGBoost": "#2ca02c", "SHAP": "#9467bd"}
 # ── Loaders ────────────────────────────────────────────────────────────────────
 
 def load_artifacts():
+    """Load feature data and available tree models. RF is None if pkl not committed."""
     df = pd.read_csv(FEATURES_FILE)
     feature_cols = get_model_columns(df)
-    rf  = joblib.load(MODEL_RF)
+    rf  = joblib.load(MODEL_RF) if MODEL_RF.exists() else None
     xgb = joblib.load(MODEL_XGB)
     return df, feature_cols, rf, xgb
 

@@ -1,16 +1,18 @@
 """
-06_model_performance.py — ROC, PR, confusion matrices, metrics table, and SHAP explainability.
+06_model_performance.py — ROC, PR, confusion matrices, metrics table, SHAP explainability.
+Gracefully skips any model whose .pkl is not present (e.g. model_rf.pkl on Streamlit Cloud).
 """
 
 import json
 import sys
 from pathlib import Path
 
+import joblib
 import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config.settings import DATA_OUTPUTS, FEATURES_FILE, MODEL_XGB
+from config.settings import DATA_OUTPUTS, FEATURES_FILE, MODEL_LOGISTIC, MODEL_RF, MODEL_XGB
 from src.data.features import get_model_columns
 from src.models.evaluator import (
     load_models, load_thresholds, load_test_set,
@@ -27,18 +29,21 @@ RESULTS_FILE = DATA_OUTPUTS / "model_results.json"
 st.set_page_config(page_title="Model Performance", layout="wide")
 st.title("🤖 Model Performance")
 st.caption(
-    "Compare all three models across ROC-AUC, precision, recall, and F1. "
+    "Compare models across ROC-AUC, precision, recall, and F1. "
     "Understand what the model learned and what drives individual predictions."
 )
 
 if not MODEL_XGB.exists() or not RESULTS_FILE.exists():
-    st.error("Model artifacts not found. Run `python -m src.models.run_pipeline` first.")
+    st.error("Core model artifacts not found. Commit model_xgb.pkl and model_results.json.")
     st.stop()
+
+if not MODEL_RF.exists():
+    st.info("ℹ️ Random Forest model not available in this deployment — showing Logistic Regression and XGBoost only.")
 
 
 @st.cache_resource(show_spinner="Loading models…")
 def get_models():
-    return load_models()
+    return load_models()   # returns only models whose pkl files exist
 
 
 @st.cache_data(show_spinner="Loading test set…")
@@ -55,11 +60,10 @@ models     = get_models()
 X_test, y_test = get_test()
 thresholds = get_thresholds()
 
-# ── Metrics table ─────────────────────────────────────────────────────────────
+# ── Metrics table ──────────────────────────────────────────────────────────────
 st.subheader("Model Comparison — Holdout Test Set")
 mtable = metrics_table(models, thresholds, X_test, y_test)
 
-# Load CV metrics from JSON for extra context
 with open(RESULTS_FILE) as f:
     results_json = json.load(f)
 
@@ -69,18 +73,16 @@ key_map = {
     "XGBoost":             "xgboost",
 }
 mtable["CV-AUC (mean±std)"] = mtable["Model"].map(
-    lambda n: f"{results_json[key_map[n]]['cv_auc_mean']:.4f}"
-              f"±{results_json[key_map[n]]['cv_auc_std']:.4f}"
+    lambda n: (
+        f"{results_json[key_map[n]]['cv_auc_mean']:.4f}"
+        f"±{results_json[key_map[n]]['cv_auc_std']:.4f}"
+    ) if key_map.get(n) in results_json else "—"
 )
 
+highlight_cols = [c for c in ["ROC-AUC", "Recall (Churn)", "F1 (Churn)"] if c in mtable.columns]
 st.dataframe(
-    mtable.style.highlight_max(
-        subset=["ROC-AUC", "Recall (Churn)", "F1 (Churn)"],
-        color="#d4f1d4",
-    ).highlight_max(
-        subset=["Precision (Churn)"],
-        color="#cce5ff",
-    ),
+    mtable.style.highlight_max(subset=highlight_cols, color="#d4f1d4")
+              .highlight_max(subset=["Precision (Churn)"], color="#cce5ff"),
     use_container_width=True,
     hide_index=True,
 )
@@ -88,16 +90,13 @@ st.dataframe(
 st.markdown("---")
 with st.expander("📖 How to read these metrics"):
     st.markdown("""
-    | Metric | What it measures | Business implication |
-    |--------|-----------------|---------------------|
-    | **ROC-AUC** | Overall discrimination between churners and non-churners | Higher = model is better at ranking customers by risk |
-    | **Precision (Churn)** | Of customers we flag as at-risk, how many actually churn | Low precision = wasted outreach budget |
-    | **Recall (Churn)** | Of all actual churners, how many did we catch | Low recall = missed revenue — silent loss |
-    | **F1 (Churn)** | Harmonic mean of precision and recall | Best single metric for imbalanced classification |
-    | **CV-AUC** | 5-fold cross-validated AUC on training set | ±std tells you how stable the model is |
-
-    **Threshold** is tuned per model on the validation set to maximise F1(churn).
-    The default 0.5 threshold is sub-optimal for imbalanced data.
+    | Metric | Business implication |
+    |--------|---------------------|
+    | **ROC-AUC** | Higher = better at ranking customers by churn risk |
+    | **Precision (Churn)** | Low = wasted outreach budget |
+    | **Recall (Churn)** | Low = churners missed, revenue lost silently |
+    | **F1 (Churn)** | Primary selection metric for imbalanced data |
+    | **Threshold** | Tuned per-model on val set to maximise F1(churn) — not assumed 0.5 |
     """)
 
 st.markdown("---")
@@ -110,21 +109,12 @@ with col1:
 with col2:
     st.plotly_chart(precision_recall_figure(models, X_test, y_test), use_container_width=True)
 
-st.caption(
-    "The PR curve is more informative than ROC for imbalanced datasets. "
-    "A random classifier would sit at the dashed baseline (≈26% churn rate). "
-    "All three models substantially outperform random."
-)
-
 st.markdown("---")
 
-# ── Confusion matrices ────────────────────────────────────────────────────────
+# ── Confusion matrices — one per available model ──────────────────────────────
 st.subheader("Confusion Matrices")
-st.caption(
-    "False Negatives (churner predicted as retained) cost the most — "
-    "they represent revenue lost without any intervention attempt."
-)
-cm_cols = st.columns(3)
+st.caption("False Negatives cost the most — churners we failed to flag.")
+cm_cols = st.columns(len(models))
 for col, (name, model) in zip(cm_cols, models.items()):
     with col:
         st.plotly_chart(
@@ -140,51 +130,48 @@ st.subheader("What Drives Churn Predictions?")
 df_feat, feat_cols, rf, xgb = load_artifacts()
 X_sample = df_feat[feat_cols].sample(500, random_state=42)
 
-tab_shap, tab_xgb, tab_rf, tab_lr = st.tabs([
-    "🔮 SHAP (XGBoost)", "🌲 XGBoost Importance", "🌳 Random Forest Importance", "📐 Logistic Coefficients",
-])
+# Build tabs dynamically based on what's available
+tab_labels = ["🔮 SHAP (XGBoost)", "🌲 XGBoost Importance", "📐 Logistic Coefficients"]
+if rf is not None:
+    tab_labels.insert(2, "🌳 Random Forest Importance")
 
-with tab_shap:
+tabs = st.tabs(tab_labels)
+tab_iter = iter(tabs)
+
+with next(tab_iter):
     st.plotly_chart(shap_summary(xgb, X_sample, feat_cols), use_container_width=True)
     st.caption(
-        "SHAP (SHapley Additive exPlanations) shows the average contribution of each "
-        "feature to the churn prediction across 500 sampled customers. "
-        "Features at the top have the most impact — in either direction."
+        "Mean |SHAP value| across 500 sampled customers. "
+        "Features at top have the most impact on predictions."
     )
 
-with tab_xgb:
-    xgb_imp = feature_importance_df(xgb, feat_cols, "XGBoost")
-    st.plotly_chart(importance_figure(xgb_imp), use_container_width=True)
+with next(tab_iter):
+    st.plotly_chart(importance_figure(feature_importance_df(xgb, feat_cols, "XGBoost")), use_container_width=True)
 
-with tab_rf:
-    rf_imp = feature_importance_df(rf, feat_cols, "Random Forest")
-    st.plotly_chart(importance_figure(rf_imp), use_container_width=True)
+if rf is not None:
+    with next(tab_iter):
+        st.plotly_chart(importance_figure(feature_importance_df(rf, feat_cols, "Random Forest")), use_container_width=True)
 
-with tab_lr:
-    import joblib
-    from config.settings import MODEL_LOGISTIC
-    lr_model = joblib.load(MODEL_LOGISTIC)
-    st.plotly_chart(logistic_coef_figure(lr_model, feat_cols), use_container_width=True)
-    st.caption(
-        "Red bars = feature pushes the model toward predicting churn.  \n"
-        "Green bars = feature pushes toward retention.  \n"
-        "Coefficients are standardised — comparable in magnitude across features."
-    )
+with next(tab_iter):
+    if MODEL_LOGISTIC.exists():
+        lr_model = joblib.load(MODEL_LOGISTIC)
+        st.plotly_chart(logistic_coef_figure(lr_model, feat_cols), use_container_width=True)
+        st.caption("Red = increases churn risk · Green = decreases churn risk · Coefficients are standardised.")
+    else:
+        st.info("Logistic Regression model not available.")
 
 st.markdown("---")
 
-# ── Top driver interpretation ─────────────────────────────────────────────────
+# ── Driver table ──────────────────────────────────────────────────────────────
 st.subheader("Business Interpretation of Top Drivers")
 st.markdown("""
 | Rank | Feature | What it means | Action lever |
 |------|---------|---------------|--------------|
-| 1 | `is_longterm_contract` | Customers **without** a long-term contract churn most | Offer contract upgrade incentives |
-| 2 | `tenure` | Short-tenure customers churn at 5× the rate of long-tenure | Improve early onboarding experience |
-| 3 | `avg_monthly_revenue` | Higher spenders feel more pressure to evaluate alternatives | Personalise value communication |
+| 1 | `is_longterm_contract` | No long-term contract → highest churn | Offer contract upgrade incentives |
+| 2 | `tenure` | Short-tenure customers churn at 5× the rate | Improve onboarding experience |
+| 3 | `avg_monthly_revenue` | Higher spenders feel pressure to evaluate alternatives | Personalise value communication |
 | 4 | `MonthlyCharges` | Directly correlated with revenue at risk | Tier retention spend by charge level |
-| 5 | `is_fiber` | Fiber optic customers churn at 42% vs 7% for no-internet | Investigate service quality or pricing |
-| 6 | `charges_delta` | Customers paying more than their avg feel overcharged | Proactive rate-review outreach |
-| 7 | `Electronic check` | Manual pay method linked to 45% churn | Promote auto-pay adoption |
-| 8 | `PaperlessBilling` | Linked to higher digital engagement and higher churn | Add value with digital-first perks |
-| 9 | `OnlineSecurity` | Customers without security add-ons churn more | Bundle security at renewal |
+| 5 | `is_fiber` | Fiber churn at 42% vs 7% no-internet | Investigate service quality or pricing |
+| 6 | `Electronic check` | Manual pay method linked to 45% churn | Promote auto-pay adoption |
+| 7 | `OnlineSecurity` | No security add-on → lower perceived value | Bundle security at renewal |
 """)
