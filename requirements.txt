@@ -1,0 +1,26 @@
+# Core data
+pandas>=2.0
+numpy>=1.26
+
+# Machine learning
+scikit-learn>=1.4
+xgboost>=2.0
+shap>=0.44
+imbalanced-learn>=0.12
+
+# Visualization
+matplotlib>=3.7
+seaborn>=0.12
+plotly>=5.18
+
+# App
+streamlit>=1.30
+
+# Utilities
+joblib>=1.3
+pyyaml>=6.0
+openpyxl>=3.1
+
+# Optional: notebook exploration
+jupyter>=1.0
+ipykernel>=6.0

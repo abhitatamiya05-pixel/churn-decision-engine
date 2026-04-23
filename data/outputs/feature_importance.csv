@@ -1,0 +1,109 @@
+feature,importance,model
+Contract_Month-to-month,0.1259296184990692,Random Forest
+is_longterm_contract,0.12290568998319971,Random Forest
+tenure,0.10904907540991278,Random Forest
+TotalCharges,0.08628114071921103,Random Forest
+clv_estimate,0.057247666285868845,Random Forest
+MonthlyCharges,0.05449734270103993,Random Forest
+avg_monthly_revenue,0.05168475998277504,Random Forest
+Contract_Two year,0.050435827352836034,Random Forest
+InternetService_Fiber optic,0.0393448149633949,Random Forest
+is_fiber,0.0383970401439824,Random Forest
+charges_delta,0.0366145875361255,Random Forest
+PaymentMethod_Electronic check,0.028001744323978645,Random Forest
+InternetService_No,0.017898475220234963,Random Forest
+has_internet,0.016550955682094214,Random Forest
+is_autopay,0.01430765094977298,Random Forest
+OnlineSecurity,0.013851945259983444,Random Forest
+Contract_One year,0.013476076165946042,Random Forest
+PaperlessBilling,0.013419292629806678,Random Forest
+service_count,0.012949990146180165,Random Forest
+InternetService_DSL,0.01101381658654096,Random Forest
+TechSupport,0.00991457299236211,Random Forest
+Dependents,0.007436574794036354,Random Forest
+StreamingMovies,0.007023002249948399,Random Forest
+gender_Male,0.00695739061378777,Random Forest
+OnlineBackup,0.006791512197102314,Random Forest
+gender_Female,0.006421013680239289,Random Forest
+Partner,0.005682305818972058,Random Forest
+MultipleLines,0.005366312752103049,Random Forest
+StreamingTV,0.004625156738584972,Random Forest
+PaymentMethod_Bank transfer (automatic),0.004346361938190198,Random Forest
+DeviceProtection,0.004132718963290901,Random Forest
+PaymentMethod_Credit card (automatic),0.004055340480919344,Random Forest
+PaymentMethod_Mailed check,0.0037338450046850054,Random Forest
+SeniorCitizen,0.0036378530359508342,Random Forest
+is_senior,0.003418778269187299,Random Forest
+PhoneService,0.002599749928686579,Random Forest
+Contract_Month-to-month,0.2956179678440094,XGBoost
+is_longterm_contract,0.23514991998672485,XGBoost
+InternetService_Fiber optic,0.09107226878404617,XGBoost
+is_fiber,0.06890050321817398,XGBoost
+Contract_Two year,0.0306828785687685,XGBoost
+InternetService_No,0.024968868121504784,XGBoost
+has_internet,0.01787588745355606,XGBoost
+PaymentMethod_Electronic check,0.015691006556153297,XGBoost
+Contract_One year,0.01481448020786047,XGBoost
+StreamingMovies,0.01351634319871664,XGBoost
+InternetService_DSL,0.01248850766569376,XGBoost
+tenure,0.012247840873897076,XGBoost
+PaperlessBilling,0.011461436748504639,XGBoost
+OnlineSecurity,0.009776842780411243,XGBoost
+StreamingTV,0.007847271859645844,XGBoost
+clv_estimate,0.007547654211521149,XGBoost
+SeniorCitizen,0.007482022512704134,XGBoost
+TechSupport,0.0073636798188090324,XGBoost
+Dependents,0.007279649842530489,XGBoost
+MonthlyCharges,0.0072556231170892715,XGBoost
+TotalCharges,0.0071705118753015995,XGBoost
+PhoneService,0.007160314824432135,XGBoost
+OnlineBackup,0.007037013303488493,XGBoost
+avg_monthly_revenue,0.006834987550973892,XGBoost
+MultipleLines,0.00672114547342062,XGBoost
+is_autopay,0.0066297841258347034,XGBoost
+PaymentMethod_Bank transfer (automatic),0.006333108991384506,XGBoost
+service_count,0.006319886073470116,XGBoost
+PaymentMethod_Credit card (automatic),0.0062722377479076385,XGBoost
+charges_delta,0.006234864704310894,XGBoost
+is_senior,0.006083931773900986,XGBoost
+gender_Female,0.005989578552544117,XGBoost
+gender_Male,0.005880367010831833,XGBoost
+PaymentMethod_Mailed check,0.00568066630512476,XGBoost
+DeviceProtection,0.005611472297459841,XGBoost
+Partner,0.004999419208616018,XGBoost
+is_longterm_contract,0.6557600498199463,SHAP
+tenure,0.45836204290390015,SHAP
+avg_monthly_revenue,0.2139228880405426,SHAP
+MonthlyCharges,0.20748387277126312,SHAP
+is_fiber,0.20361682772636414,SHAP
+TotalCharges,0.19069676101207733,SHAP
+charges_delta,0.17640258371829987,SHAP
+PaymentMethod_Electronic check,0.1698864847421646,SHAP
+PaperlessBilling,0.15570467710494995,SHAP
+OnlineSecurity,0.14322078227996826,SHAP
+Contract_Two year,0.1238846629858017,SHAP
+Contract_Month-to-month,0.11992955952882767,SHAP
+TechSupport,0.10867419093847275,SHAP
+StreamingMovies,0.10715965926647186,SHAP
+has_internet,0.10006064176559448,SHAP
+MultipleLines,0.09587754309177399,SHAP
+Contract_One year,0.09464825689792633,SHAP
+Dependents,0.06957675516605377,SHAP
+InternetService_Fiber optic,0.05656479671597481,SHAP
+OnlineBackup,0.05613778159022331,SHAP
+StreamingTV,0.04939409717917442,SHAP
+clv_estimate,0.0467345304787159,SHAP
+SeniorCitizen,0.04233429208397865,SHAP
+gender_Female,0.03231864422559738,SHAP
+PhoneService,0.031316667795181274,SHAP
+service_count,0.028137503191828728,SHAP
+InternetService_No,0.023988910019397736,SHAP
+Partner,0.02102590538561344,SHAP
+PaymentMethod_Bank transfer (automatic),0.01817668229341507,SHAP
+PaymentMethod_Mailed check,0.01726936176419258,SHAP
+InternetService_DSL,0.014967910014092922,SHAP
+DeviceProtection,0.014915229752659798,SHAP
+is_autopay,0.012762894853949547,SHAP
+PaymentMethod_Credit card (automatic),0.010830335319042206,SHAP
+gender_Male,0.008883395232260227,SHAP
+is_senior,0.0043892147950828075,SHAP
